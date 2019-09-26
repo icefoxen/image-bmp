@@ -1,53 +1,7 @@
-/home/icefox/src/image/target/debug/deps/image-1572d6378c9ff26e.rmeta: src/lib.rs src/math/mod.rs src/math/nq.rs src/math/utils.rs src/imageops/mod.rs src/imageops/affine.rs src/imageops/colorops.rs src/imageops/sample.rs src/io/mod.rs src/io/reader.rs src/io/free_functions.rs src/flat.rs src/bmp/mod.rs src/bmp/decoder.rs src/bmp/encoder.rs src/dxt.rs src/gif.rs src/hdr/mod.rs src/hdr/decoder.rs src/hdr/encoder.rs src/ico/mod.rs src/ico/decoder.rs src/ico/encoder.rs src/jpeg/mod.rs src/jpeg/decoder.rs src/jpeg/encoder.rs src/jpeg/entropy.rs src/jpeg/transform.rs src/png.rs src/pnm/mod.rs src/pnm/autobreak.rs src/pnm/decoder.rs src/pnm/encoder.rs src/pnm/header.rs src/tga/mod.rs src/tga/decoder.rs src/tiff.rs src/webp/mod.rs src/webp/decoder.rs src/webp/transform.rs src/webp/vp8.rs src/animation.rs src/buffer.rs src/color.rs src/dynimage.rs src/image.rs src/traits.rs src/utils/mod.rs src/../README.md
+/home/icefox/src/image-bmp/target/debug/deps/image-1572d6378c9ff26e.rmeta: src/lib.rs src/decoder.rs src/encoder.rs
 
-/home/icefox/src/image/target/debug/deps/image-1572d6378c9ff26e.d: src/lib.rs src/math/mod.rs src/math/nq.rs src/math/utils.rs src/imageops/mod.rs src/imageops/affine.rs src/imageops/colorops.rs src/imageops/sample.rs src/io/mod.rs src/io/reader.rs src/io/free_functions.rs src/flat.rs src/bmp/mod.rs src/bmp/decoder.rs src/bmp/encoder.rs src/dxt.rs src/gif.rs src/hdr/mod.rs src/hdr/decoder.rs src/hdr/encoder.rs src/ico/mod.rs src/ico/decoder.rs src/ico/encoder.rs src/jpeg/mod.rs src/jpeg/decoder.rs src/jpeg/encoder.rs src/jpeg/entropy.rs src/jpeg/transform.rs src/png.rs src/pnm/mod.rs src/pnm/autobreak.rs src/pnm/decoder.rs src/pnm/encoder.rs src/pnm/header.rs src/tga/mod.rs src/tga/decoder.rs src/tiff.rs src/webp/mod.rs src/webp/decoder.rs src/webp/transform.rs src/webp/vp8.rs src/animation.rs src/buffer.rs src/color.rs src/dynimage.rs src/image.rs src/traits.rs src/utils/mod.rs src/../README.md
+/home/icefox/src/image-bmp/target/debug/deps/image-1572d6378c9ff26e.d: src/lib.rs src/decoder.rs src/encoder.rs
 
 src/lib.rs:
-src/math/mod.rs:
-src/math/nq.rs:
-src/math/utils.rs:
-src/imageops/mod.rs:
-src/imageops/affine.rs:
-src/imageops/colorops.rs:
-src/imageops/sample.rs:
-src/io/mod.rs:
-src/io/reader.rs:
-src/io/free_functions.rs:
-src/flat.rs:
-src/bmp/mod.rs:
-src/bmp/decoder.rs:
-src/bmp/encoder.rs:
-src/dxt.rs:
-src/gif.rs:
-src/hdr/mod.rs:
-src/hdr/decoder.rs:
-src/hdr/encoder.rs:
-src/ico/mod.rs:
-src/ico/decoder.rs:
-src/ico/encoder.rs:
-src/jpeg/mod.rs:
-src/jpeg/decoder.rs:
-src/jpeg/encoder.rs:
-src/jpeg/entropy.rs:
-src/jpeg/transform.rs:
-src/png.rs:
-src/pnm/mod.rs:
-src/pnm/autobreak.rs:
-src/pnm/decoder.rs:
-src/pnm/encoder.rs:
-src/pnm/header.rs:
-src/tga/mod.rs:
-src/tga/decoder.rs:
-src/tiff.rs:
-src/webp/mod.rs:
-src/webp/decoder.rs:
-src/webp/transform.rs:
-src/webp/vp8.rs:
-src/animation.rs:
-src/buffer.rs:
-src/color.rs:
-src/dynimage.rs:
-src/image.rs:
-src/traits.rs:
-src/utils/mod.rs:
-src/../README.md:
+src/decoder.rs:
+src/encoder.rs:
