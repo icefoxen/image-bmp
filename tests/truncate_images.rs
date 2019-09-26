@@ -4,8 +4,8 @@ use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
 
+/*
 extern crate glob;
-extern crate image;
 
 const BASE_PATH: [&'static str; 2] = [".", "tests"];
 const IMAGE_DIR: &'static str = "images";
@@ -22,10 +22,11 @@ where
         path.push(decoder);
         path.push("*");
         path.push(
-            "*.".to_string() + match input_decoder {
-                Some(val) => val,
-                None => decoder,
-            },
+            "*.".to_string()
+                + match input_decoder {
+                    Some(val) => val,
+                    None => decoder,
+                },
         );
         let pattern = &*format!("{}", path.display());
         for path in glob::glob(pattern).unwrap().filter_map(Result::ok) {
@@ -94,3 +95,4 @@ fn truncate_jpg() {
 fn truncate_hdr() {
     truncate_images("hdr");
 }
+*/

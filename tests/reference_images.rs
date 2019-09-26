@@ -1,8 +1,8 @@
 //! Compares the decoding results with reference renderings.
 
-extern crate crc32fast;
-extern crate glob;
-extern crate image;
+use crc32fast;
+use glob;
+use image_bmp;
 
 use std::fs;
 use std::io;
@@ -13,7 +13,6 @@ use crc32fast::Hasher as Crc32;
 
 const BASE_PATH: [&str; 2] = [".", "tests"];
 const IMAGE_DIR: &str = "images";
-const OUTPUT_DIR: &str = "output";
 const REFERENCE_DIR: &str = "reference";
 
 fn process_images<F>(dir: &str, input_decoder: Option<&str>, func: F)
@@ -21,62 +20,24 @@ where
     F: Fn(&PathBuf, PathBuf, &str),
 {
     let base: PathBuf = BASE_PATH.iter().collect();
-    let decoders = &["tga", "tiff", "png", "gif", "bmp", "ico", "jpg", "hdr", "pbm", "webp"];
+    let decoders = &["bmp"];
     for decoder in decoders {
         let mut path = base.clone();
         path.push(dir);
         path.push(decoder);
         path.push("**");
         path.push(
-            "*.".to_string() + match input_decoder {
-                Some(val) => val,
-                None => decoder,
-            },
+            "*.".to_string()
+                + match input_decoder {
+                    Some(val) => val,
+                    None => decoder,
+                },
         );
         let pattern = &*format!("{}", path.display());
         for path in glob::glob(pattern).unwrap().filter_map(Result::ok) {
             func(&base, path, decoder)
         }
     }
-}
-
-#[cfg(feature = "png")]
-#[test]
-fn render_images() {
-    process_images(IMAGE_DIR, None, |base, path, decoder| {
-        println!("render_images {}", path.display());
-        let img = match image::open(&path) {
-            Ok(img) => img.to_rgba(),
-            // Do not fail on unsupported error
-            // This might happen because the testsuite contains unsupported images
-            // or because a specific decoder included via a feature.
-            Err(image::ImageError::UnsupportedError(e)) => {
-                println!("UNSUPPORTED {}: {}", path.display(), e);
-                return;
-            }
-            Err(err) => panic!(format!("decoding of {:?} failed with: {}", path, err)),
-        };
-        let mut crc = Crc32::new();
-        crc.update(&*img);
-
-        let (filename, testsuite) = {
-            let mut path: Vec<_> = path.components().collect();
-            (path.pop().unwrap(), path.pop().unwrap())
-        };
-        let mut out_path = base.clone();
-
-        out_path.push(OUTPUT_DIR);
-        out_path.push(decoder);
-        out_path.push(testsuite.as_os_str());
-        fs::create_dir_all(&out_path).unwrap();
-        out_path.push(format!(
-            "{}.{}.{}",
-            filename.as_os_str().to_str().unwrap(),
-            format!("{:x}", crc.finalize()),
-            "png"
-        ));
-        img.save(out_path).unwrap();
-    })
 }
 
 /// Describes a single test case of `check_references`.
@@ -90,14 +51,6 @@ enum ReferenceTestKind {
     /// The test image is loaded using `image::open`, and the result is compared
     /// against the reference image.
     SingleImage,
-
-    /// From the test image file, a single frame is extracted using
-    /// `image::gif::Decoder`, and the result is compared against the reference
-    /// image.
-    AnimatedGifFrame {
-        /// A zero-based frame number.
-        frame: usize,
-    },
 }
 
 impl std::str::FromStr for ReferenceTestCase {
@@ -121,13 +74,6 @@ impl std::str::FromStr for ReferenceTestCase {
             // `CRC`
             crc = parse_crc(&meta[0]).ok_or("malformed CRC")?;
             kind = ReferenceTestKind::SingleImage;
-        } else if meta.len() == 3 && meta[0] == "anim" {
-            // `anim_FRAME_CRC`
-            crc = parse_crc(&meta[2]).ok_or("malformed CRC")?;
-            let frame: usize = meta[1].parse().map_err(|_| "malformed frame number")?;
-            kind = ReferenceTestKind::AnimatedGifFrame {
-                frame: frame.checked_sub(1).ok_or("frame number must be 1-based")?,
-            };
         } else {
             return Err("unrecognized reference image metadata format");
         }
@@ -156,13 +102,15 @@ fn check_references() {
     process_images(REFERENCE_DIR, Some("png"), |base, path, decoder| {
         println!("check_references {}", path.display());
 
-        let ref_img = match image::open(&path) {
-            Ok(img) => img.to_rgba(),
+        let f = io::BufReader::new(fs::File::open(&path).unwrap());
+        let ref_img = match image_bmp::BMPDecoder::new(f) {
+            // TODO: This was to_rgba()
+            Ok(mut img) => img.read_image_data().unwrap(),
             // Do not fail on unsupported error
             // This might happen because the testsuite contains unsupported images
             // or because a specific decoder included via a feature.
-            Err(image::ImageError::UnsupportedError(_)) => return,
-            Err(err) => panic!(format!("{}", err)),
+            Err(image_bmp::ImageError::UnsupportedError(_)) => return,
+            Err(err) => panic!(format!("{:?}", err)),
         };
 
         let (filename, testsuite) = {
@@ -184,52 +132,19 @@ fn check_references() {
         let test_img;
 
         match case.kind {
-            ReferenceTestKind::AnimatedGifFrame { frame: frame_num } => {
-                #[cfg(feature = "gif_codec")]
-                {
-                    // Interpret the input file as an animation file
-                    use image::AnimationDecoder;
-                    let stream = io::BufReader::new(fs::File::open(&img_path).unwrap());
-                    let decoder = match image::gif::Decoder::new(stream) {
-                        Ok(decoder) => decoder,
-                        Err(image::ImageError::UnsupportedError(_)) => return,
-                        Err(err) => {
-                            panic!(format!("decoding of {:?} failed with: {}", img_path, err))
-                        }
-                    };
-
-                    let mut frames = match decoder.into_frames().collect_frames() {
-                        Ok(frames) => frames,
-                        Err(image::ImageError::UnsupportedError(_)) => return,
-                        Err(err) => panic!(format!(
-                            "collecting frames of {:?} failed with: {}",
-                            img_path, err
-                        )),
-                    };
-
-                    // Select a single frame
-                    let frame = frames.drain(frame_num..).nth(0).unwrap();
-
-                    // Convert the frame to a`RgbaImage`
-                    test_img = frame.into_buffer();
-                }
-
-                #[cfg(not(feature = "gif_codec"))]
-                {
-                    println!("Skipping - GIF codec is not enabled");
-                    return;
-                }
-            }
-
             ReferenceTestKind::SingleImage => {
                 // Read the input file as a single image
-                match image::open(&img_path) {
-                    Ok(img) => test_img = img.to_rgba(),
+                let f = io::BufReader::new(fs::File::open(&path).unwrap());
+                match image_bmp::BMPDecoder::new(f) {
+                    // TODO: This was .to_rgba()
+                    Ok(mut img) => test_img = img.read_image_data().unwrap(),
                     // Do not fail on unsupported error
                     // This might happen because the testsuite contains unsupported images
                     // or because a specific decoder included via a feature.
-                    Err(image::ImageError::UnsupportedError(_)) => return,
-                    Err(err) => panic!(format!("decoding of {:?} failed with: {}", img_path, err)),
+                    Err(image_bmp::ImageError::UnsupportedError(_)) => return,
+                    Err(err) => {
+                        panic!(format!("decoding of {:?} failed with: {:?}", img_path, err))
+                    }
                 };
             }
         }
@@ -247,50 +162,10 @@ fn check_references() {
             );
         }
 
-        if *ref_img != *test_img {
+        if *ref_img == *test_img {
             panic!("Reference rendering does not match.");
         }
     })
-}
-
-#[cfg(feature = "hdr")]
-#[test]
-fn check_hdr_references() {
-    let mut ref_path: PathBuf = BASE_PATH.iter().collect();
-    ref_path.push(REFERENCE_DIR);
-    ref_path.push("hdr");
-    let mut path: PathBuf = BASE_PATH.iter().collect();
-    path.push(IMAGE_DIR);
-    path.push("hdr");
-    path.push("*");
-    path.push("*.hdr");
-    let pattern = &*format!("{}", path.display());
-    for path in glob::glob(pattern).unwrap().filter_map(Result::ok) {
-        use std::path::Component::Normal;
-        let mut ref_path = ref_path.clone();
-        // append 2 last components of image path to reference path
-        for c in path.components()
-            .rev()
-            .take(2)
-            .collect::<Vec<_>>()
-            .iter()
-            .rev()
-        {
-            match *c {
-                Normal(name) => ref_path.push(name),
-                _ => panic!(),
-            }
-        }
-        ref_path.set_extension("raw");
-        println!("{}", ref_path.display());
-        println!("{}", path.display());
-        let decoder = image::hdr::HDRDecoder::new(io::BufReader::new(
-            fs::File::open(&path).unwrap(),
-        )).unwrap();
-        let decoded = decoder.read_image_hdr().unwrap();
-        let reference = image::hdr::read_raw_file(&ref_path).unwrap();
-        assert_eq!(decoded, reference);
-    }
 }
 
 /// Check that BMP files with large values could cause OOM issues are rejected.
@@ -307,7 +182,8 @@ fn bad_bmps() {
 
     let pattern = &*format!("{}", path.display());
     for path in glob::glob(pattern).unwrap().filter_map(Result::ok) {
-        let im = image::open(path);
+        let f = io::BufReader::new(fs::File::open(&path).unwrap());
+        let im = image_bmp::BMPDecoder::new(f);
         assert!(im.is_err());
     }
 }

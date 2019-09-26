@@ -4,20 +4,8 @@ use std::marker::PhantomData;
 use std::slice::ChunksMut;
 use std::{cmp, mem};
 
+use crate::ImageError;
 use byteorder::{LittleEndian, ReadBytesExt};
-
-#[derive(Debug)]
-pub enum ImageError {
-    FormatError(String),
-    UnsupportedError(String),
-    IoError(std::io::Error),
-}
-
-impl From<std::io::Error> for ImageError {
-    fn from(err: std::io::Error) -> ImageError {
-        ImageError::IoError(err)
-    }
-}
 
 const BITMAPCOREHEADER_SIZE: u32 = 12;
 const BITMAPINFOHEADER_SIZE: u32 = 40;
@@ -544,37 +532,6 @@ impl<R: Read + Seek> BMPDecoder<R> {
 
         decoder.read_metadata()?;
         Ok(decoder)
-    }
-
-    #[cfg(feature = "ico")]
-    pub(crate) fn new_with_ico_format(reader: R) -> Result<BMPDecoder<R>, ImageError> {
-        let mut decoder = BMPDecoder {
-            reader,
-
-            bmp_header_type: BMPHeaderType::Info,
-
-            width: 0,
-            height: 0,
-            data_offset: 0,
-            top_down: false,
-            no_file_header: false,
-            add_alpha_channel: false,
-            has_loaded_metadata: false,
-            image_type: ImageType::Palette,
-
-            bit_count: 0,
-            colors_used: 0,
-            palette: None,
-            bitfields: None,
-        };
-
-        decoder.read_metadata_in_ico_format()?;
-        Ok(decoder)
-    }
-
-    #[cfg(feature = "ico")]
-    pub(crate) fn reader(&mut self) -> &mut R {
-        &mut self.reader
     }
 
     fn read_file_header(&mut self) -> Result<(), ImageError> {
